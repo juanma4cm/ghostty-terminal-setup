@@ -1,0 +1,74 @@
+# ── PATH ──────────────────────────────────────────────────────────────────────
+export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
+export PATH="/opt/homebrew/opt/node@22/bin:$PATH"
+export PATH="$HOME/.local/bin:$PATH"
+# ── Oh My Zsh ─────────────────────────────────────────────────────────────────
+export ZSH="$HOME/.oh-my-zsh"
+ZSH_THEME=""
+# zsh-syntax-highlighting must stay last
+plugins=(
+  git
+  docker
+  pyautoenv
+  zsh-autosuggestions
+  zsh-completions
+  zsh-history-substring-search
+  zsh-fzf-history-search
+  you-should-use
+  zsh-bat
+  zsh-syntax-highlighting
+)
+autoload -Uz compinit && compinit
+source "$ZSH/oh-my-zsh.sh"
+# ── Aliases ───────────────────────────────────────────────────────────────────
+alias zshconf="nano ~/.zshrc"
+if command -v eza &>/dev/null; then
+  # Listados normales (Base con iconos y directorios primero)
+  alias ls='eza -lh --group-directories-first --icons=auto'
+  alias lsa='ls --all'                            # Versión limpia usando flags de eza
+  alias l='ls'                                    # El alias definitivo de 1 sola letra, hiperrápido
+
+  # Árboles
+  alias lt='eza --tree --level=2 --long --icons --git --group-directories-first' # Agrupamos carpetas arriba
+  alias lta='lt --all'                                                           # árbol con archivos ocultos (.git, .env, etc.)
+  alias lt3='eza --tree --level=3 --icons --git'                                 # Árbol más profundo (nivel 3) pero vista compacta sin pesos para que no sature
+  alias ltd='eza --tree --level=2 --only-dirs --icons'                           # Árbol SOLO de carpetas (útil para ver la estructura de un proyecto sin archivos)
+
+  # Ordenación rápida
+  alias lsize='ls --sort=size'                    # Ordenar por tamaño
+  alias lmod='ls --sort=modified'                 # Ordenar por fecha de modificación
+  alias lgit='eza -lh --git-ignore --icons'       # Ignorar lo que esté en el .gitignore
+fi
+
+# ── Functions ─────────────────────────────────────────────────────────────────
+function updateall() {
+  echo "==> Homebrew: update & upgrade & cleanup..."
+  brew update && brew upgrade && brew cleanup
+  echo ""
+  echo "==> macOS: checking system updates..."
+  softwareupdate --install --all
+  if command -v mas &>/dev/null; then
+    echo ""
+    echo "==> Mac App Store: upgrading apps..."
+    mas upgrade
+  fi
+  if command -v pip3 &>/dev/null; then
+    echo ""
+    echo "==> pip: upgrading global packages..."
+    pip3 list --outdated --format=freeze 2>/dev/null | cut -d'=' -f1 | xargs -n1 pip3 install -U 2>/dev/null || true
+  fi
+  if command -v npm &>/dev/null; then
+    echo ""
+    echo "==> npm: upgrading global packages..."
+    npm update -g
+  fi
+  echo ""
+  echo "✅ updateall complete"
+}
+# ── Prompt & fzf ──────────────────────────────────────────────────────────────
+eval "$(starship init zsh)"
+[[ -f ~/.fzf.zsh ]] && source ~/.fzf.zsh
+# ── Optional: asdf (uncomment after brew install asdf) ───────────────────────
+# . "$(brew --prefix asdf)/libexec/asdf.sh"
+# ── Optional: forgit (uncomment after cloning to $ZSH/custom/plugins/forgit) ──
+# plugins+=(forgit)  # add to array above, before zsh-syntax-highlighting
