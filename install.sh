@@ -194,15 +194,15 @@ install_plugins() {
 }
 
 install_background() {
-  local src="${REPO_DIR}/assets/team-rocket.png"
+  local src="${REPO_DIR}/assets/c-letter.png"
   local dest_dir="${HOME}/Pictures/fondos"
-  local dest="${dest_dir}/team-rocket.png"
+  local dest="${dest_dir}/c-letter.png"
   mkdir -p "$dest_dir"
   if [[ -f "$src" ]]; then
-    cp -n "$src" "$dest" 2>/dev/null || cp "$src" "$dest"
+    cp "$src" "$dest"
     ok "Background image at $dest"
   else
-    warn "No background asset found; Ghostty will still work without it"
+    warn "Default background asset missing; Ghostty will still work without it"
   fi
 }
 
@@ -274,7 +274,7 @@ ${GREEN}════════════════════════
 
   Next steps:
     1. Reload Ghostty config with Cmd+Shift+, (or quit and reopen it).
-       Without a reload the theme, font and background image stay as-is.
+       Without a reload, theme, font and background stay as-is.
     2. If fonts look wrong: Ghostty → Settings, confirm MesloLGS Nerd Font
     3. Optional backups are in: ${BACKUP_DIR}
 

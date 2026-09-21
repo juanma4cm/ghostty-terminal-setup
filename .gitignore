@@ -1,3 +1,8 @@
 .DS_Store
 *.swp
 *~
+
+# Extra personal wallpapers — do not publish.
+# The free-license default (assets/c-letter.png) is tracked on purpose.
+assets/*
+!assets/c-letter.png
