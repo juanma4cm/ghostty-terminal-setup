@@ -9,7 +9,7 @@ Replicates a Ghostty + Oh My Zsh + Starship setup (Monokai Classic, syntax highl
 | **Ghostty** | Theme `Monokai Classic`, MesloLGS Nerd Font, subtle Team Rocket background |
 | **Oh My Zsh** | Plugins: git, docker, pyautoenv, autosuggestions, completions, history-substring-search, fzf-history-search, you-should-use, zsh-bat, syntax-highlighting |
 | **Starship** | Catppuccin Mocha palette powerline prompt |
-| **CLI tools** | fzf, eza, bat, fd, ripgrep, zoxide, mas |
+| **CLI tools** | fzf, eza, bat, fd, ripgrep, zoxide, mas, lazygit |
 | **Aliases** | `ls` / `lt` / `lta` / `lt3` / `ltd` / … via eza |
 | **Helpers** | `updateall` (brew + macOS + mas + pip + npm) |
 
@@ -32,7 +32,7 @@ chmod +x install.sh
 
 Existing `~/.zshrc`, Starship, and Ghostty configs are backed up under `~/.dotfiles-backup-YYYYMMDD-HHMMSS/` before overwrite.
 
-Reopen Ghostty when the script finishes.
+When the script finishes, reload the Ghostty config with `Cmd+Shift+,` (or quit and reopen Ghostty). Until you do, the theme, font and background image keep the previous values.
 
 ## Layout
 

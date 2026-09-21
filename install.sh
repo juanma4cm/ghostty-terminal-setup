@@ -5,6 +5,7 @@ set -euo pipefail
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BACKUP_DIR="${HOME}/.dotfiles-backup-$(date +%Y%m%d-%H%M%S)"
 ZSH_CUSTOM="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}"
+FAILED_CASKS=()
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -54,14 +55,90 @@ ensure_brew_in_path() {
   command -v brew &>/dev/null || fail "brew not found after install"
 }
 
+retry() {
+  local attempts="$1"; shift
+  local n=1
+  until "$@"; do
+    if (( n >= attempts )); then
+      return 1
+    fi
+    warn "Attempt $n/$attempts failed: $* (retrying in $((n * 5))s)"
+    sleep $((n * 5))
+    ((n++))
+  done
+}
+
+install_cask() {
+  local cask="$1"
+  if brew list --cask "$cask" &>/dev/null; then
+    ok "Cask already installed: $cask"
+    return 0
+  fi
+  # --adopt takes over an app already present in /Applications instead of erroring
+  if retry 3 brew install --cask --adopt "$cask"; then
+    ok "Installed cask: $cask"
+    return 0
+  fi
+  warn "Could not install cask: $cask (continuing)"
+  FAILED_CASKS+=("$cask")
+  return 0
+}
+
+unmark_failed_cask() {
+  local target="$1" kept=() item
+  for item in "${FAILED_CASKS[@]-}"; do
+    if [[ -n "$item" && "$item" != "$target" ]]; then
+      kept+=("$item")
+    fi
+  done
+  if (( ${#kept[@]} )); then
+    FAILED_CASKS=("${kept[@]}")
+  else
+    FAILED_CASKS=()
+  fi
+}
+
+install_meslo_font_manually() {
+  local font_dir="${HOME}/Library/Fonts"
+  if compgen -G "${font_dir}/MesloLG*Nerd*" >/dev/null || compgen -G "/Library/Fonts/MesloLG*Nerd*" >/dev/null; then
+    ok "MesloLG Nerd Font already present"
+    unmark_failed_cask font-meslo-lg-nerd-font
+    return 0
+  fi
+
+  info "Falling back to direct download of MesloLG Nerd Font..."
+  local tmp url
+  tmp="$(mktemp -d)"
+  url="https://github.com/ryanoasis/nerd-fonts/releases/latest/download/Meslo.tar.xz"
+  if retry 3 curl -fsSL --retry 3 --retry-all-errors -o "${tmp}/Meslo.tar.xz" "$url"; then
+    mkdir -p "$font_dir"
+    if tar -xJf "${tmp}/Meslo.tar.xz" -C "$tmp" && find "$tmp" -name '*.ttf' -exec cp {} "$font_dir" \;; then
+      ok "MesloLG Nerd Font installed to $font_dir"
+      unmark_failed_cask font-meslo-lg-nerd-font
+      rm -rf "$tmp"
+      return 0
+    fi
+  fi
+  rm -rf "$tmp"
+  warn "Font download failed. Install it later with: brew install --cask font-meslo-lg-nerd-font"
+}
+
 install_packages() {
   info "Installing Homebrew packages..."
-  local formulae=(starship fzf eza bat fd ripgrep mas zoxide git)
+  local formulae=(starship fzf eza bat fd ripgrep mas zoxide git lazygit)
   local casks=(ghostty font-meslo-lg-nerd-font)
 
-  brew update
+  brew update || warn "brew update failed (continuing with cached formulae)"
   brew install "${formulae[@]}"
-  brew install --cask "${casks[@]}"
+
+  local cask
+  for cask in "${casks[@]}"; do
+    install_cask "$cask"
+  done
+
+  if [[ " ${FAILED_CASKS[*]-} " == *" font-meslo-lg-nerd-font "* ]]; then
+    install_meslo_font_manually
+  fi
   ok "Packages installed"
 
   info "Installing fzf key bindings..."
@@ -175,6 +252,11 @@ set_default_shell() {
 }
 
 print_summary() {
+  if (( ${#FAILED_CASKS[@]} )) && [[ -n "${FAILED_CASKS[0]-}" ]]; then
+    warn "These casks could not be installed: ${FAILED_CASKS[*]}"
+    warn "Retry later with: brew install --cask --adopt ${FAILED_CASKS[*]}"
+  fi
+
   cat <<EOF
 
 ${GREEN}═══════════════════════════════════════════════════════════${NC}
@@ -188,10 +270,11 @@ ${GREEN}════════════════════════
     • Starship prompt
     • eza aliases (ls, lt, lta, lt3, ltd, …)
     • updateall helper
-    • fzf, bat, fd, ripgrep, zoxide, mas
+    • fzf, bat, fd, ripgrep, zoxide, mas, lazygit
 
   Next steps:
-    1. Quit and reopen Ghostty (or open a new window)
+    1. Reload Ghostty config with Cmd+Shift+, (or quit and reopen it).
+       Without a reload the theme, font and background image stay as-is.
     2. If fonts look wrong: Ghostty → Settings, confirm MesloLGS Nerd Font
     3. Optional backups are in: ${BACKUP_DIR}
 
